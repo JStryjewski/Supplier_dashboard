@@ -1,0 +1,286 @@
+# template.py
+html_template = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Supplier scorecard</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+    }
+
+    .header {
+      background-color: rgb(126, 186, 0);
+      color: white;
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 100px;
+      z-index: 1000;
+    }
+
+    .header h1 {
+      margin: 0;
+      flex: 1;
+      text-align: center;
+      font-size: 42px;
+    }
+
+    .header .date {
+      flex: 0 1 auto;
+      font-size: 24px;
+      white-space: nowrap;
+    }
+
+    .header img {
+      height: 80px;
+      flex: 0 1 auto;
+    }
+
+    .sidebar {
+      width: 200px;
+      background-color: rgb(126, 186, 0);
+      padding: 25px;
+      height: calc(100vh - 100px);
+      position: fixed;
+      top: 100px;
+      left: 0;
+      overflow-y: auto;
+      color: white;
+    }
+
+    .sidebar input {
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      margin-bottom: 10px;
+      border: none;
+      border-radius: 4px;
+    }
+
+    .sidebar a {
+      display: block;
+      padding: 10px;
+      text-decoration: none;
+      color: white;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .sidebar a:hover {
+      background-color: rgba(0, 0, 0, 0.2);
+    }
+
+    .main {
+      margin-left: 220px;
+      padding: 120px 20px 20px 20px; /* top padding = header height + margin */
+    }
+
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+      margin-top: 20px;
+      margin-left: 20px;
+    }
+
+    table {
+      border-collapse: collapse;
+      background-color: #f2f2f2;
+      color: #000;
+      width: 100%;
+      min-width: 600px;
+      table-layout: fixed;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px 12px;
+      text-align: center;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    th:first-child, td:first-child {
+      position: sticky;
+      left: 0;
+      min-width: 180px;
+      width: 300px;
+      font-weight: bold;
+      background-color: #d9d9d9;
+      z-index: 1;
+    }
+
+    th:not(:first-child), td:not(:first-child) {
+      min-width: 90px;
+      width: 90px;
+    }
+
+    tr:nth-child(even) {
+      background-color: #e6e6e6;
+    }
+
+    tr:nth-child(odd) {
+      background-color: #f9f9f9;
+    }
+
+    #sidebarSearch:focus {
+      outline: 2px solid white;
+    }
+
+    #chartsWrapper {
+      overflow-x: auto;
+      padding: 10px;
+    }
+
+    #chartsContainer {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr); /* 3 columns */
+      grid-template-rows: repeat(2, auto);   /* 2 rows */
+      gap: 20px;
+      justify-items: center;
+      min-width: 960px;
+      margin: 0 auto;
+    }
+
+    .chart-box {
+      width: 350px;
+      height: 250px;
+    }
+
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+
+  <header class="header">
+    <div class="date">{{ date }}</div>
+    <h1 id="reportTitle">{{ title }}</h1>
+    <img src="https://higrupa.pl/wp-content/uploads/2016/08/natura-drogerie-logo-biale-poprawne.png" alt="Logo">
+  </header>
+
+  <div class="sidebar">
+    <input type="text" id="sidebarSearch" placeholder="Search..." onkeyup="filterSidebar()">
+    {% for logo in tableData.keys() %}
+      <a href="#" onclick="showData('{{ logo }}')">{{ logo }}</a>
+    {% endfor %}
+  </div>
+
+  <div class="main">
+    <div class="table-container">
+      <table id="dataTable"></table>
+    </div>
+    <div id="chartsWrapper">
+      <div id="chartsContainer"></div>
+    </div>
+  </div>
+
+
+  <script>
+    const monthLabels = [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+
+    const tableData = {{ tableData | tojson | safe }};
+
+    function showData(logo) {
+      const table = document.getElementById("dataTable");
+      const data = tableData[logo];
+      if (!data) return;
+
+      const title = document.getElementById("reportTitle");
+      title.textContent = `{{ title }} - ${logo}`;
+      document.title = `{{ title }} - ${logo}`;
+
+      const maxColumns = Math.max(...data.data.map(row => row.length));
+
+      let headerRow = `<tr><th>Variable</th>`;
+      for (let i = 0; i < maxColumns; i++) {
+        headerRow += `<th>${monthLabels[i] || ""}</th>`;
+      }
+      headerRow += `</tr>`;
+
+      const rows = data.variable.map((variableName, rowIndex) => {
+        let row = `<tr><td>${variableName}</td>`;
+        for (let i = 0; i < maxColumns; i++) {
+          row += `<td>${data.data[rowIndex][i] || ""}</td>`;
+        }
+        row += `</tr>`;
+        return row;
+      });
+
+      table.innerHTML = headerRow + rows.join("");
+
+      const chartsContainer = document.getElementById("chartsContainer");
+      chartsContainer.innerHTML = "";
+
+      data.variable.forEach((variableName, idx) => {
+        const chartBox = document.createElement("div");
+        chartBox.className = "chart-box";
+
+        const canvas = document.createElement("canvas");
+        canvas.id = `chart-${idx}`;
+        chartBox.appendChild(canvas);
+        chartsContainer.appendChild(chartBox);
+
+        const rawValues = data.data[idx].slice(0, 12);
+        const values = rawValues.map(v => {
+          if (!v || v === "") return null;
+          const cleaned = v.replace(/[%' ]/g, "").replace(",", ".");
+          return isNaN(cleaned) ? null : parseFloat(cleaned);
+        });
+
+        new Chart(canvas, {
+          type: "bar",
+          data: {
+            labels: monthLabels,
+            datasets: [{
+              label: variableName,
+              data: values,
+              backgroundColor: "rgba(100, 100, 100, 0.6)",
+              borderColor: "rgba(80, 80, 80, 1)",
+              borderWidth: 1
+            }]
+          },
+          options: {
+            scales: {
+              y: { beginAtZero: true, ticks: { precision: 0 } }
+            },
+            plugins: {
+              legend: { display: false },
+              title: {
+                display: true,
+                text: variableName,
+                font: { size: 16 }
+              }
+            }
+          }
+        });
+      });
+    }
+
+    function filterSidebar() {
+      const input = document.getElementById("sidebarSearch");
+      const filter = input.value.toUpperCase();
+      const links = document.querySelectorAll(".sidebar a");
+      links.forEach(link => {
+        const text = link.textContent || link.innerText;
+        link.style.display = text.toUpperCase().includes(filter) ? "" : "none";
+      });
+    }
+
+    window.onload = () => showData(Object.keys(tableData)[0]);
+  </script>
+</body>
+</html>
+"""
