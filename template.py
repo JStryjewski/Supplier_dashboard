@@ -165,7 +165,7 @@ html_template = """
   <header class="header">
     <div class="date">{{ date }}</div>
     <h1 id="reportTitle">{{ title }}</h1>
-    <img src="https://higrupa.pl/wp-content/uploads/2016/08/natura-drogerie-logo-biale-poprawne.png" alt="Logo">
+    <img src="https://raw.githubusercontent.com/JStryjewski/Supplier_dashboard/main/logo.png" alt="Logo">
   </header>
 
   <div class="sidebar">
